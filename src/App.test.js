@@ -1,8 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import App from './App';
 
-test('renders learn react link', () => {
+jest.mock('./components/Viewport3D', () => () => <div data-testid="viewport" />);
+
+test('shows the laboratory sign-in', () => {
   render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+  expect(screen.getByText(/Увійти в лабораторію/i)).toBeInTheDocument();
 });
