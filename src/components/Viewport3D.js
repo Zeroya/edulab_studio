@@ -1,10 +1,11 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { EARTH_TEXTURES } from '../data/earthTextures';
 import { ELEMENT_SPECS } from '../data/elementSpecs';
 import { CHEMISTRY_MODELS } from '../data/chemistryModels';
 import { useStudio } from '../context/StudioContext';
+import { attachWebXR } from '../webxr/attachWebXR';
 
 // ============================================================================
 // 3. ЦЕНТРАЛЬНЕ 3D / WEBXR ВІКНО (Viewport3D)
@@ -26,6 +27,7 @@ export default function Viewport3D() {
 
   const mountRef = useRef(null);
   const resizeHandlerRef = useRef(() => {});
+  const [vrPreview, setVrPreview] = useState(false);
 
   useEffect(() => {
     const container = mountRef.current;
@@ -64,15 +66,18 @@ export default function Viewport3D() {
     dirLight.position.set(4, 7, 5);
     scene.add(dirLight);
 
+    const stage = new THREE.Group();
+    scene.add(stage);
+
     const gridHelper = new THREE.GridHelper(12, 24, 0x334155, 0x1e293b);
-    scene.add(gridHelper);
+    stage.add(gridHelper);
 
     const rootGroup = new THREE.Group();
     rootGroup.position.set(0, 1.15, 0);
-    scene.add(rootGroup);
+    stage.add(rootGroup);
 
     const measureGroup = new THREE.Group();
-    scene.add(measureGroup);
+    stage.add(measureGroup);
 
     const texLoader = new THREE.TextureLoader();
     texLoader.setCrossOrigin('anonymous');
@@ -990,27 +995,43 @@ export default function Viewport3D() {
       const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x38bdf8 }));
       measureGroup.add(line);
     };
-    apiRef.current.enterVR = async () => {
-      if (!navigator.xr) {
-        setXrMessage('WebXR недоступний у цьому браузері (доступний 3D-режим)');
-        setTimeout(() => setXrMessage(''), 4000);
-        return;
-      }
-      try {
-        const supported = await navigator.xr.isSessionSupported('immersive-vr');
-        if (!supported) {
-          setXrMessage('VR-шолом не підключено — активний інтерактивний 3D-огляд');
-          setTimeout(() => setXrMessage(''), 4000);
+    const webxr = attachWebXR({
+      renderer,
+      scene,
+      stage,
+      rootGroup,
+      controls,
+      onSelectEntity: handleSelectEntity,
+      onSessionChange: (phase, error) => {
+        if (phase === 'preview-on') {
+          setVrPreview(true);
+          setXrMessage('Стереоперегляд увімкнено: ліве і праве око. Шолома немає, тому це перевірка VR на екрані.');
           return;
         }
-        const session = await navigator.xr.requestSession('immersive-vr', {
-          optionalFeatures: ['local-floor', 'bounded-floor'],
-        });
-        renderer.xr.setSession(session);
-      } catch (err) {
-        setXrMessage('Не вдалося відкрити VR-сесію: ' + err.message);
+        if (phase === 'preview-off') {
+          setVrPreview(false);
+          setXrMessage('');
+          return;
+        }
+        if (phase === 'start') {
+          setVrPreview(false);
+          setXrMessage('VR-сесію відкрито. Тригер контролера вибирає об’єкт на сцені.');
+          return;
+        }
+        if (phase === 'error') {
+          setXrMessage('Не вдалося відкрити VR: ' + (error?.message || 'сесію відхилено'));
+          setTimeout(() => setXrMessage(''), 5000);
+          return;
+        }
+        setVrPreview(false);
+        setXrMessage('VR-сесію завершено. Повернуто звичайний 3D-огляд.');
         setTimeout(() => setXrMessage(''), 4000);
-      }
+      },
+    });
+    container.appendChild(webxr.button);
+
+    apiRef.current.enterVR = () => {
+      webxr.button.click();
     };
 
     const raycaster = new THREE.Raycaster();
@@ -1043,12 +1064,15 @@ export default function Viewport3D() {
 
     const clock = new THREE.Clock();
     renderer.setAnimationLoop(() => {
-      syncViewportSize();
+      const presenting = renderer.xr.isPresenting;
+      if (!presenting) {
+        syncViewportSize();
+        controls.update();
+      }
       const dt = clock.getDelta();
       const flags = liveFlagsRef.current;
 
       gridHelper.visible = flags.showGrid;
-      controls.update();
 
       if (flags.isPlaying) {
         if (flags.activeModelId.startsWith('v-')) {
@@ -1080,11 +1104,12 @@ export default function Viewport3D() {
         mesh.position.lerp(targetPos, 0.12);
       });
 
-      renderer.render(scene, camera);
+      webxr.render(scene, camera);
     });
 
     return () => {
       renderer.setAnimationLoop(null);
+      webxr.dispose();
       resizeObserver.disconnect();
       window.removeEventListener('resize', syncViewportSize);
       renderer.domElement.removeEventListener('pointerdown', onPointerDown);
@@ -1102,6 +1127,17 @@ export default function Viewport3D() {
   return (
     <main className="flex-1 basis-0 relative min-w-0 h-full overflow-hidden flex items-center justify-center transition-all duration-300 ease-in-out">
       <div ref={mountRef} className="w-full h-full block" />
+      {vrPreview && (
+        <>
+          <div className="pointer-events-none absolute inset-y-0 left-1/2 z-20 w-0.5 -translate-x-1/2 bg-white/80" />
+          <div className="pointer-events-none absolute left-3 top-3 z-20 rounded-full bg-black/70 px-2 py-1 text-[10px] font-bold text-sky-200">
+            Ліве око
+          </div>
+          <div className="pointer-events-none absolute right-3 top-3 z-20 rounded-full bg-black/70 px-2 py-1 text-[10px] font-bold text-sky-200">
+            Праве око
+          </div>
+        </>
+      )}
     </main>
   );
 }

@@ -176,16 +176,16 @@ export default function TopToolbar() {
         <button
           onClick={() => apiRef.current.enterVR()}
           className="px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white text-[11px] font-bold flex items-center gap-1 shadow transition"
-          title="Запустити WebXR VR-режим"
+          title="Увійти в immersive-vr через WebXR (VRButton)"
         >
           <Glasses className="w-3.5 h-3.5" />
-          <span>VR</span>
+          <span>WebXR</span>
         </button>
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
         {xrMessage && (
-          <span className="hidden xl:inline-block text-[10px] px-2 py-1 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
+          <span className="max-w-[280px] truncate text-[10px] px-2 py-1 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
             {xrMessage}
           </span>
         )}
