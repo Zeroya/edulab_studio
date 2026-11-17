@@ -27,15 +27,15 @@ npm start
 
 Географія. Ліворуч каталог моделей, у центрі 3D-сцена, праворуч теорія і перехід до тестів.
 
-![Географія: внутрішня будова Землі](docs/screenshots/03-geography.png)
+<img width="2559" height="1186" alt="image" src="https://github.com/user-attachments/assets/1b38d0f2-ed03-4330-93de-2f1a45331f1a" />
 
 Хімія. Приклад — молекула води з описом структури та повзунком температури.
 
-![Хімія: молекула води](docs/screenshots/04-chemistry.png)
+<img width="2559" height="1189" alt="image" src="https://github.com/user-attachments/assets/4dec2f49-6a2e-4ee9-90fd-4c733e5bdb16" />
 
 Verilog HDL. Логічний вентиль AND, входи A/B/C і поле коду `assign`.
 
-![Verilog: базові вентилі](docs/screenshots/05-verilog.png)
+<img width="1280" height="593" alt="image" src="https://github.com/user-attachments/assets/1a21df48-acf5-4711-8cd3-7f6d218e6266" />
 
 ## Що є в лабораторії
 
